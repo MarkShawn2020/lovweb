@@ -1,0 +1,54 @@
+{
+  "name": "create-lovstudio-app",
+  "version": "1.0.1",
+  "description": "Create a new Lovstudio Next.js project",
+  "type": "module",
+  "bin": {
+    "create-lovstudio-app": "./dist/index.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "release": "pnpm build && npm publish",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "create",
+    "lovstudio",
+    "nextjs",
+    "template",
+    "boilerplate",
+    "supabase",
+    "typescript"
+  ],
+  "author": "Lovstudio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markshawn2020/lovweb.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "url": "https://github.com/markshawn2020/lovweb/issues"
+  },
+  "homepage": "https://github.com/markshawn2020/lovweb#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "cac": "^6.7.14",
+    "giget": "^1.2.3",
+    "ora": "^8.1.1",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/prompts": "^2.4.9",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
