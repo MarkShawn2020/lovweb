@@ -1,6 +1,6 @@
 {
   "name": "create-lovstudio-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Create a new Lovstudio Next.js project",
   "type": "module",
   "bin": {

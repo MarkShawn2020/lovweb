@@ -75,6 +75,9 @@ export async function processTemplate(projectPath: string, config: ProjectConfig
 
   // 6. Create/update .env.example if needed
   await ensureEnvExample(projectPath, config)
+
+  // 7. Replace branding (Lovweb -> projectName)
+  await replaceBranding(projectPath, config)
 }
 
 async function removeIfExists(filePath: string): Promise<void> {
@@ -183,4 +186,115 @@ ARCJET_KEY=
 `
 
   await fs.promises.writeFile(envExamplePath, envContent)
+}
+
+// Files that need branding replacement
+const BRANDING_FILES = [
+  'src/utils/AppConfig.ts',
+  'src/components/layout/Header.tsx',
+  'src/components/layout/Footer.tsx',
+  'src/components/LovwebIcon.tsx',
+  'src/components/LovwebLogo.tsx',
+  'src/components/auth/ProfessionalAuthLayout.tsx',
+  'src/app/[locale]/layout.tsx',
+  'src/locales/en.json',
+  'src/locales/zh.json',
+]
+
+function toTitleCase(str: string): string {
+  return str
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('')
+}
+
+async function replaceBranding(projectPath: string, config: ProjectConfig): Promise<void> {
+  const brandName = toTitleCase(config.projectName)
+  const brandNameLower = config.projectName.toLowerCase()
+
+  for (const file of BRANDING_FILES) {
+    const filePath = path.join(projectPath, file)
+    try {
+      let content = await fs.promises.readFile(filePath, 'utf-8')
+
+      // Replace branding variations
+      content = content.replace(/Lovweb/g, brandName)
+      content = content.replace(/lovweb/g, brandNameLower)
+      content = content.replace(/LOVWEB/g, brandName.toUpperCase())
+
+      // Replace GitHub URLs with placeholder
+      content = content.replace(
+        /https:\/\/github\.com\/markshawn2020\/lovweb/g,
+        `https://github.com/your-org/${brandNameLower}`,
+      )
+      content = content.replace(
+        /https:\/\/github\.com\/lovstudio\/lovweb/g,
+        `https://github.com/your-org/${brandNameLower}`,
+      )
+
+      // Replace domain
+      content = content.replace(/lovweb\.ai/g, `${brandNameLower}.com`)
+
+      await fs.promises.writeFile(filePath, content)
+    }
+    catch {
+      // File doesn't exist, skip
+    }
+  }
+
+  // Rename LovwebIcon.tsx and LovwebLogo.tsx
+  await renameComponent(projectPath, 'LovwebIcon', `${brandName}Icon`)
+  await renameComponent(projectPath, 'LovwebLogo', `${brandName}Logo`)
+}
+
+async function renameComponent(projectPath: string, oldName: string, newName: string): Promise<void> {
+  const oldPath = path.join(projectPath, `src/components/${oldName}.tsx`)
+  const newPath = path.join(projectPath, `src/components/${newName}.tsx`)
+
+  try {
+    // Read and update content
+    let content = await fs.promises.readFile(oldPath, 'utf-8')
+    content = content.replace(new RegExp(oldName, 'g'), newName)
+    await fs.promises.writeFile(oldPath, content)
+
+    // Rename file
+    await fs.promises.rename(oldPath, newPath)
+
+    // Update imports in other files
+    await updateImports(projectPath, oldName, newName)
+  }
+  catch {
+    // File doesn't exist, skip
+  }
+}
+
+async function updateImports(projectPath: string, oldName: string, newName: string): Promise<void> {
+  const srcPath = path.join(projectPath, 'src')
+  await updateImportsRecursive(srcPath, oldName, newName)
+}
+
+async function updateImportsRecursive(dir: string, oldName: string, newName: string): Promise<void> {
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === '.git')
+        continue
+      await updateImportsRecursive(fullPath, oldName, newName)
+    }
+    else if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts')) {
+      try {
+        let content = await fs.promises.readFile(fullPath, 'utf-8')
+        if (content.includes(oldName)) {
+          content = content.replace(new RegExp(oldName, 'g'), newName)
+          await fs.promises.writeFile(fullPath, content)
+        }
+      }
+      catch {
+        // Skip
+      }
+    }
+  }
 }
